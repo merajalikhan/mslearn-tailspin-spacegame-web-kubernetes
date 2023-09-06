@@ -1,0 +1,138 @@
+az account list-locations \
+  --query "[].{Name: name, DisplayName: displayName}" \
+  --output table
+
+az configure --defaults location=<REGION>
+
+
+az configure --defaults location=uksouth
+
+== Create the App Service instances
+
+webappsuffix=$RANDOM
+resourceSuffix=$RANDOM
+
+rgName='mk-space-game-rg'
+webapp='mk-space-game-web'
+planName='mk-space-game-asp'
+
+webName="mk-space-game-web-${resourceSuffix}"
+leaderboardName="mk-space-game-leaderboard-${resourceSuffix}"
+storageName="mkspacegame${resourceSuffix}"
+
+registryName="mkspacegame${resourceSuffix}"
+
+aksName="mkspacegame-${resourceSuffix}"
+
+az group create --name mk-space-game-rg
+
+az appservice plan create \
+  --name $planName \
+  --resource-group $rgName \
+  --sku F1 \
+  --is-linux
+
+
+az webapp create \
+  --name $webapp-dev-$webappsuffix \
+  --resource-group $rgName \
+  --plan $planName \
+  --runtime "DOTNET|6.0"
+
+az webapp create \
+  --name $webapp-test-$webappsuffix \
+  --resource-group $rgName \
+  --plan $planName \
+  --runtime "DOTNET|6.0"
+
+az webapp create \
+  --name $webapp-staging-$webappsuffix \
+  --resource-group $rgName \
+  --plan  $planName \
+  --runtime "DOTNET|6.0"
+
+=================
+== this is for azure function
+az webapp create \
+  --name $webName \
+  --resource-group $rgName \
+  --plan $planName \
+  --runtime "DOTNETCORE|6.0"
+==========================
+-- this is for docker deployment
+
+az webapp create \
+  --name $webName \
+  --resource-group $rgName \
+  --plan $planName \
+  --deployment-container-image-name $registryName.azurecr.io/web:latest
+
+======================
+
+az webapp list \
+  --resource-group $rgName \
+  --query "[].{hostName: defaultHostName, state: state}" \
+  --output table
+
+================
+
+
+
+== this is for azure function
+-- create storage account
+az storage account create \
+  --name $storageName \
+  --resource-group $rgName \
+  --sku Standard_LRS
+
+--Create the Azure Functions app instance
+az functionapp create \
+  --name $leaderboardName \
+  --resource-group $rgName \
+  --storage-account $storageName \
+  --functions-version 4 \
+  --consumption-plan-location uksouth
+
+========
+== this is for docker container
+-- create Az container registry
+az acr create --name $registryName \
+  --resource-group $rgName \
+  --sku Standard \
+  --admin-enabled true
+
+===-- this is for kubernetes
+-- create acr
+az acr create \
+  --name $registryName \
+  --resource-group $rgName \
+  --sku Standard
+
+--  create an AKS instance
+az aks create \
+  --name $aksName \
+  --resource-group $rgName \
+  --enable-addons monitoring \
+  --kubernetes-version $aksVersion \
+  --generate-ssh-keys
+
+
+-- Create a variable to store the ID of the service principal configured for the AKS instance
+clientId=$(az aks show \
+  --resource-group $rgName \
+  --name $aksName \
+  --query "identityProfile.kubeletidentity.clientId" \
+  --output tsv)
+
+-- Create a variable to store the ID of the Azure Container Registry
+acrId=$(az acr show \
+  --name $registryName \
+  --resource-group $rgName \
+  --query "id" \
+  --output tsv)
+
+--create a role assignment to authorize the AKS cluster to connect to the Azure Container Registry
+az role assignment create \
+  --assignee $clientId \
+  --role AcrPull \
+  --scope $acrId
