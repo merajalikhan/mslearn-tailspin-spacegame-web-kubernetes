@@ -63,19 +63,19 @@ stages:
                 action: createSecret
                 connectionType: azureResourceManager
                 secretName: $(imagePullSecret)
-                dockerRegistryEndpoint: 'Container Registry Connection'
-                azureSubscriptionConnection: 'Kubernetes Cluster Connection'
-                azureResourceGroup: 'mk-space-game-rg'
-                kubernetesCluster: 'mkspacegame16056'
+                dockerRegistryEndpoint: $(dockerRegistryEndpoint)
+                azureSubscriptionConnection:  $(azureSubscriptionConnection)
+                azureResourceGroup: $(azureResourceGroup)
+                kubernetesCluster: $(kubernetesCluster)
                 namespace: 'default'
             - task: KubernetesManifest@1
               displayName: Deploy to Kubernetes cluster
               inputs:
                   action: deploy
                   connectionType: azureResourceManager
-                  azureSubscriptionConnection: 'Kubernetes Cluster Connection'
-                  azureResourceGroup: 'mk-space-game-rg'
-                  kubernetesCluster: 'mkspacegame16056'
+                  azureSubscriptionConnection:  $(azureSubscriptionConnection)
+                  azureResourceGroup: $(azureResourceGroup)
+                  kubernetesCluster:  $(kubernetesCluster)
                   namespace: 'default'
                   manifests: |
                     $(Pipeline.Workspace)/manifests/deployment.yml
