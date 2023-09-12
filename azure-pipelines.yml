@@ -65,7 +65,7 @@ stages:
                 secretName: $(imagePullSecret)
                 dockerRegistryEndpoint: 'Container Registry Connection'
                 azureSubscriptionConnection: 'Kubernetes Cluster Connection'
-                azureResourceGroup: 'tailspin-space-game-rg'
+                azureResourceGroup: 'mk-space-game-rg'
                 kubernetesCluster: 'mkspacegame-16056'
                 namespace: 'default'
             - task: KubernetesManifest@1
